@@ -3,17 +3,26 @@
 #include "ChooseNextWaypoint.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "AIController.h"
-#include "PatrollingCharacter.h"
+#include "PatrolRoute.h"
 
 EBTNodeResult::Type UChooseNextWaypoint::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	auto BlackboardComp = OwnerComp.GetBlackboardComponent();
 	auto Index = BlackboardComp->GetValueAsInt(IndexKey.SelectedKeyName);
 
-	auto Owner = Cast<APatrollingCharacter>(OwnerComp.GetAIOwner()->GetPawn());
+	auto ControlledPawn = OwnerComp.GetAIOwner()->GetPawn();
+	auto PatrolRoute = ControlledPawn->FindComponentByClass<UPatrolRoute>();
 
-	BlackboardComp->SetValueAsObject(WaypointKey.SelectedKeyName, Owner->PatrolPointsCPP[Index]);
-	BlackboardComp->SetValueAsInt(IndexKey.SelectedKeyName, (Index + 1) % Owner->PatrolPointsCPP.Num());
+	if (!ensure(PatrolRoute)) { return EBTNodeResult::Failed; }
+	TArray<AActor*> PatrolPoints = PatrolRoute->GetPatrolPoints();
+	if (PatrolPoints.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("A guard is missing patrol points"));
+		return EBTNodeResult::Failed;
+	}
+
+	BlackboardComp->SetValueAsObject(WaypointKey.SelectedKeyName, PatrolPoints[Index]);
+	BlackboardComp->SetValueAsInt(IndexKey.SelectedKeyName, (Index + 1) % PatrolPoints.Num());
 
 	UE_LOG(LogTemp, Warning, TEXT("Waypoint Index: %i"), Index);
 
