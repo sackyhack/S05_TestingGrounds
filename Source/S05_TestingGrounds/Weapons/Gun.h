@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "Gun.generated.h"
 
+class APawn;
 class UAnimInstance;
 class UAnimMontage;
 
@@ -22,12 +23,17 @@ public:
 	// Sets default values for this actor's properties
 	AGun();
 
+	/** Fires a virtual projectile. */
+	void OnFire();
+
+	void SetOwningPawn(APawn* Owner);
+
+private:
+	APawn* OwningPawn;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-	/** Fires a virtual projectile. */
-	void OnFire();
 
 	/** Gun muzzle's offset from the characters location */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)

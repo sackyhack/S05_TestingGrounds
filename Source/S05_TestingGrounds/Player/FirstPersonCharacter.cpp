@@ -3,8 +3,10 @@
 #include "FirstPersonCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/PlayerController.h"
+#include "../Weapons/Gun.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
 
@@ -34,6 +36,24 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 	Mesh1P->CastShadow = false;				// Disallow mesh to cast other shadows
 }
 
+// Called when the game starts or when spawned
+void AFirstPersonCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (GunBlueprint == NULL)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GunBlueprint was not set"));
+		return;
+	}
+	Gun = GetWorld()->SpawnActor<AGun>(GunBlueprint);
+	Gun->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GripPoint"));
+	Gun->SetOwningPawn(this);
+
+	// Bind fire event
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, Gun, &AGun::OnFire);
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Input
 
@@ -41,15 +61,15 @@ void AFirstPersonCharacter::SetupPlayerInputComponent(class UInputComponent* Pla
 {
 	// set up gameplay key bindings
 	check(PlayerInputComponent);
+
+	// Save component for use during BeginPlay?
+	this->PlayerInputComponent = PlayerInputComponent;
 	
 	// Set up gameplay key bindings
 
 	// Bind jump events
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
-	
-	// Bind fire event
-	//PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFirstPersonCharacter::OnFire);
 	
 	// Attempt to enable touch screen movement
 	TryEnableTouchscreenMovement(PlayerInputComponent);

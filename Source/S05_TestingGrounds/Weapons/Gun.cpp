@@ -14,10 +14,9 @@ AGun::AGun()
 
 	// Create a gun mesh component
 	FP_Gun = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FP_Gun"));
-	FP_Gun->SetOnlyOwnerSee(true);			// Only the owning player will see this mesh
 	FP_Gun->bCastDynamicShadow = false;		// Disallow mesh to cast dynamic shadows
 	FP_Gun->CastShadow = false;			// Disallow mesh to cast other shadows
-	//FP_Gun->SetupAttachment(Mesh1P, TEXT("GripPoint"));
+	RootComponent = FP_Gun;
 
 	// Set weapon damage and range
 	WeaponRange = 5000.0f;
@@ -44,6 +43,12 @@ void AGun::Tick(float DeltaTime)
 
 }
 
+void AGun::SetOwningPawn(APawn* Owner)
+{
+	OwningPawn = Owner;
+	Instigator = Owner;
+}
+
 void AGun::OnFire()
 {
 	// Play a sound if there is one
@@ -63,21 +68,27 @@ void AGun::OnFire()
 	}
 
 	//// Now send a trace from the end of our gun to see if we should hit anything
-	//APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	//APawn* OwningPawn = Cast<APawn>(GetOwner());
+	//UE_LOG(LogTemp, Warning, TEXT("OwningPawn is %s"), *OwningPawn->GetName());
+	APlayerController* PlayerController = nullptr;
+	if (OwningPawn)
+	{
+		PlayerController = Cast<APlayerController>(OwningPawn->GetController());
+	}
 
 	FVector ShootDir = FVector::ZeroVector;
 	FVector StartTrace = FVector::ZeroVector;
 
-	//if (PlayerController)
-	//{
-	//	// Calculate the direction of fire and the start location for trace
-	//	FRotator CamRot;
-	//	PlayerController->GetPlayerViewPoint(StartTrace, CamRot);
-	//	ShootDir = CamRot.Vector();
+	if (PlayerController)
+	{
+		// Calculate the direction of fire and the start location for trace
+		FRotator CamRot;
+		PlayerController->GetPlayerViewPoint(StartTrace, CamRot);
+		ShootDir = CamRot.Vector();
 
-	//	// Adjust trace so there is nothing blocking the ray between the camera and the pawn, and calculate distance from adjusted start
-	//	StartTrace = StartTrace + ShootDir * ((GetActorLocation() - StartTrace) | ShootDir);
-	//}
+		// Adjust trace so there is nothing blocking the ray between the camera and the pawn, and calculate distance from adjusted start
+		StartTrace = StartTrace + ShootDir * ((OwningPawn->GetActorLocation() - StartTrace) | ShootDir);
+	}
 
 	// Calculate endpoint of trace
 	const FVector EndTrace = StartTrace + ShootDir * WeaponRange;
@@ -87,7 +98,15 @@ void AGun::OnFire()
 
 	// Deal with impact
 	AActor* DamagedActor = Impact.GetActor();
+	if ((DamagedActor != NULL) && (DamagedActor != this))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Shot damaged %s"), *DamagedActor->GetName());
+	}
 	UPrimitiveComponent* DamagedComponent = Impact.GetComponent();
+	if (DamagedComponent != NULL)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Shot damaged component %s"), *DamagedComponent->GetName());
+	}
 
 	// If we hit an actor, with a component that is simulating physics, apply an impulse
 	if ((DamagedActor != NULL) && (DamagedActor != this) && (DamagedComponent != NULL) && DamagedComponent->IsSimulatingPhysics())
