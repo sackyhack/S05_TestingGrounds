@@ -28,6 +28,9 @@ public:
 
 	void SetOwningPawn(APawn* Owner);
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+	UAnimInstance* AnimInstance;
+
 private:
 	APawn* OwningPawn;
 
@@ -54,9 +57,6 @@ protected:
 	/* This is multiplied by the direction vector when the weapon trace hits something to apply velocity to the component that is hit */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 	float WeaponDamage;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-	UAnimInstance* AnimInstance;
 	
 	/*
 	 * Performs a trace between two points
