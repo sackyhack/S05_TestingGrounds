@@ -24,6 +24,7 @@ public:
 	AGun();
 
 	/** Fires a virtual projectile. */
+	UFUNCTION(BlueprintCallable, Category = "Input")
 	void OnFire();
 
 	void SetOwningPawn(APawn* Owner);
