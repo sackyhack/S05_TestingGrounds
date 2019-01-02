@@ -110,7 +110,7 @@ void AGun::OnFire()
 	}
 
 	// If we hit an actor, with a component that is simulating physics, apply an impulse
-	if ((DamagedActor != NULL) && (DamagedActor != this) && (DamagedComponent != NULL) && DamagedComponent->IsSimulatingPhysics())
+	if ((DamagedActor != NULL) && (DamagedActor != this) && (DamagedComponent != NULL))
 	{
 		UGameplayStatics::ApplyPointDamage(Impact.GetActor(), WeaponDamage, Impact.ImpactNormal, Impact, OwningPawn->GetController(), this, UDamageType::StaticClass());
 	}
