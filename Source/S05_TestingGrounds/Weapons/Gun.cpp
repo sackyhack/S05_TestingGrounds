@@ -3,6 +3,7 @@
 #include "Gun.h"
 #include "Animation/AnimInstance.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/DamageType.h"
 
 #define COLLISION_WEAPON		ECC_GameTraceChannel1
 
@@ -111,7 +112,7 @@ void AGun::OnFire()
 	// If we hit an actor, with a component that is simulating physics, apply an impulse
 	if ((DamagedActor != NULL) && (DamagedActor != this) && (DamagedComponent != NULL) && DamagedComponent->IsSimulatingPhysics())
 	{
-		DamagedComponent->AddImpulseAtLocation(ShootDir * WeaponDamage, Impact.Location);
+		UGameplayStatics::ApplyPointDamage(Impact.GetActor(), WeaponDamage, Impact.ImpactNormal, Impact, OwningPawn->GetController(), this, UDamageType::StaticClass());
 	}
 }
 
