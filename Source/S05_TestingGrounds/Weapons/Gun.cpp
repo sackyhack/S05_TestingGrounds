@@ -1,11 +1,11 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Gun.h"
+#include "S05_TestingGrounds.h"
+#include "BallProjectile.h"
 #include "Animation/AnimInstance.h"
 #include "Kismet/GameplayStatics.h"
-#include "GameFramework/DamageType.h"
 
-#define COLLISION_WEAPON		ECC_GameTraceChannel1
 
 // Sets default values
 AGun::AGun()
@@ -15,19 +15,13 @@ AGun::AGun()
 
 	// Create a gun mesh component
 	FP_Gun = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FP_Gun"));
-	FP_Gun->bCastDynamicShadow = false;		// Disallow mesh to cast dynamic shadows
-	FP_Gun->CastShadow = false;			// Disallow mesh to cast other shadows
-	RootComponent = FP_Gun;
+	FP_Gun->bCastDynamicShadow = false;
+	FP_Gun->CastShadow = false;
+	// FP_Gun->SetupAttachment(Mesh1P, TEXT("GripPoint"));
 
-	// Set weapon damage and range
-	WeaponRange = 5000.0f;
-	WeaponDamage = 500000.0f;
-
-	// Default offset from the character location for projectiles to spawn
-	GunOffset = FVector(100.0f, 30.0f, 10.0f);
-
-	// Note: The ProjectileClass and the skeletal mesh/anim blueprints for Mesh1P are set in the
-	// derived blueprint asset named MyCharacter (to avoid direct content references in C++)
+	FP_MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzleLocation"));
+	FP_MuzzleLocation->SetupAttachment(FP_Gun);
+	FP_MuzzleLocation->SetRelativeLocation(FVector(0.2f, 48.4f, -10.6f));
 }
 
 // Called when the game starts or when spawned
@@ -38,27 +32,36 @@ void AGun::BeginPlay()
 }
 
 // Called every frame
-void AGun::Tick(float DeltaTime)
+void AGun::Tick( float DeltaTime )
 {
-	Super::Tick(DeltaTime);
+	Super::Tick( DeltaTime );
 
-}
-
-void AGun::SetOwningPawn(APawn* Owner)
-{
-	OwningPawn = Owner;
-	Instigator = Owner;
 }
 
 void AGun::OnFire()
 {
-	// Play a sound if there is one
+	// try and fire a projectile
+	if (ProjectileClass != NULL)
+	{
+		const FRotator SpawnRotation = FP_MuzzleLocation->GetComponentRotation();
+		// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
+		const FVector SpawnLocation = FP_MuzzleLocation->GetComponentLocation();
+
+		UWorld* const World = GetWorld();
+		if (World != NULL)
+		{
+			// spawn the projectile at the muzzle
+			World->SpawnActor<ABallProjectile>(ProjectileClass, SpawnLocation, SpawnRotation);
+		}
+	}
+
+	// try and play the sound if specified
 	if (FireSound != NULL)
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
 	}
 
-	// Try and play a firing animation if specified
+	// try and play a firing animation if specified
 	if (FireAnimation != NULL)
 	{
 		// Get the animation object for the arms mesh
@@ -68,64 +71,4 @@ void AGun::OnFire()
 		}
 	}
 
-	//// Now send a trace from the end of our gun to see if we should hit anything
-	//APawn* OwningPawn = Cast<APawn>(GetOwner());
-	//UE_LOG(LogTemp, Warning, TEXT("OwningPawn is %s"), *OwningPawn->GetName());
-	APlayerController* PlayerController = nullptr;
-	if (OwningPawn)
-	{
-		PlayerController = Cast<APlayerController>(OwningPawn->GetController());
-	}
-
-	FVector ShootDir = FVector::ZeroVector;
-	FVector StartTrace = FVector::ZeroVector;
-
-	if (PlayerController)
-	{
-		// Calculate the direction of fire and the start location for trace
-		FRotator CamRot;
-		PlayerController->GetPlayerViewPoint(StartTrace, CamRot);
-		ShootDir = CamRot.Vector();
-
-		// Adjust trace so there is nothing blocking the ray between the camera and the pawn, and calculate distance from adjusted start
-		StartTrace = StartTrace + ShootDir * ((OwningPawn->GetActorLocation() - StartTrace) | ShootDir);
-	}
-
-	// Calculate endpoint of trace
-	const FVector EndTrace = StartTrace + ShootDir * WeaponRange;
-
-	// Check for impact
-	const FHitResult Impact = WeaponTrace(StartTrace, EndTrace);
-
-	// Deal with impact
-	AActor* DamagedActor = Impact.GetActor();
-	if ((DamagedActor != NULL) && (DamagedActor != this))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Shot damaged %s"), *DamagedActor->GetName());
-	}
-	UPrimitiveComponent* DamagedComponent = Impact.GetComponent();
-	if (DamagedComponent != NULL)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Shot damaged component %s"), *DamagedComponent->GetName());
-	}
-
-	// If we hit an actor, with a component that is simulating physics, apply an impulse
-	if ((DamagedActor != NULL) && (DamagedActor != this) && (DamagedComponent != NULL))
-	{
-		UGameplayStatics::ApplyPointDamage(Impact.GetActor(), WeaponDamage, Impact.ImpactNormal, Impact, OwningPawn->GetController(), this, UDamageType::StaticClass());
-	}
 }
-
-FHitResult AGun::WeaponTrace(const FVector& StartTrace, const FVector& EndTrace) const
-{
-	// Perform trace to retrieve hit info
-	FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(WeaponTrace), true, Instigator);
-	TraceParams.bTraceAsyncScene = true;
-	TraceParams.bReturnPhysicalMaterial = true;
-
-	FHitResult Hit(ForceInit);
-	GetWorld()->LineTraceSingleByChannel(Hit, StartTrace, EndTrace, COLLISION_WEAPON, TraceParams);
-
-	return Hit;
-}
-
