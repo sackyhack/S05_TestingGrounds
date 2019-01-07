@@ -2,6 +2,7 @@
 
 #include "Mannequin.h"
 #include "Camera/CameraComponent.h"
+#include "Components/InputComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Character.h"
 #include "Weapons/Gun.h"
@@ -41,7 +42,13 @@ void AMannequin::BeginPlay()
 	// Create a gun actor
 	GunActor = GetWorld()->SpawnActor<AGun>(GunBlueprint);
 	GunActor->AttachToComponent(FPArms, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GripPoint"));			// Attach gun to arms
-	GunActor->AnimInstance = FPArms->GetAnimInstance();
+	GunActor->FPAnimInstance = FPArms->GetAnimInstance();
+	GunActor->TPAnimInstance = GetMesh()->GetAnimInstance();
+
+	if (InputComponent != NULL)
+	{
+		InputComponent->BindAction("Fire", IE_Pressed, this, &AMannequin::PullTrigger);
+	}
 }
 
 // Called every frame
@@ -58,7 +65,7 @@ void AMannequin::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent
 
 }
 
-void AMannequin::Fire()
+void AMannequin::PullTrigger()
 {
 	GunActor->OnFire();
 }
