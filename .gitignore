@@ -14,3 +14,7 @@ Saved
 *.xcworkspace
 Content/Static/Levels/FirstPersonExampleMap_BuiltData.uasset
 Content/Dynamic/Levels/FirstPersonExampleMap_BuiltData.uasset
+Content/Static/InfinityBladeGrassLands/
+Content/Static/SoulCave/
+Content/Static/SoulCity/
+Content/Dynamic/Levels/Test.umap
